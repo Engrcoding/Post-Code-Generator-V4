@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Post Code Generator with Tabs</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body { padding: 10px; background: #f8f9fa; }
+    .container { max-width: 700px; }
+    .input-group-text { width: 40px; justify-content: center; }
+    textarea { resize: vertical; }
+    #episodeFields {
+      display: none;
+      gap: 1rem;
+      flex-wrap: nowrap;
+    }
+    .hidden { display: none !important; }
+    #output, #extraOutput {
+      max-height: 180px;
+      height: 150px;
+      resize: vertical;
+    }
+    @media (max-width: 576px) {
+      body { font-size: 0.95rem; }
+      h4 { font-size: 1.3rem; }
+      .form-label, .form-control, .input-group-text, button, textarea {
+        font-size: 0.95rem;
+      }
+      .form-control { padding: 0.25rem 0.3rem; font-size: 0.85rem; }
+      #generateBtn, #copyBtn, #copyExtraBtn {
+        font-size: 0.95rem;
+        padding: 0.25rem 0.5rem;
+      }
+      #output, #extraOutput {
+        max-height: 180px;
+        height: 100px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container bg-white p-4 rounded shadow-sm">
+  <!-- Tabs navigation -->
+  <ul class="nav nav-tabs mb-3" id="tabMenu" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="post-tab" data-bs-toggle="tab" data-bs-target="#post" type="button" role="tab" aria-controls="post" aria-selected="true">
+        Post Code
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="ranking-tab" data-bs-toggle="tab" data-bs-target="#ranking" type="button" role="tab" aria-controls="ranking" aria-selected="false">
+        Ranking
+      </button>
+    </li>
+  </ul>
+
+  <!-- Tabs content -->
+  <div class="tab-content" id="tabContent">
+    <!-- Post Code Tab -->
+    <div class="tab-pane fade show active" id="post" role="tabpanel" aria-labelledby="post-tab">
+    <div class="container bg-white p-4 rounded">
+  
+  <div class="d-flex gap-3 mb-3">
+    <div class="form-check">
+      <input class="form-check-input" type="radio" name="contentType" id="movieRadio" value="movie" checked />
+      <label class="form-check-label" for="movieRadio">Movie</label>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="radio" name="contentType" id="tvRadio" value="tv" />
+      <label class="form-check-label" for="tvRadio">TV Series</label>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-key"></i></span>
+        <input type="text" class="form-control" id="tmdbKey" placeholder="TMDB API Key" />
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+        <input type="text" class="form-control" id="tinyApiKey" placeholder="TinyURL API Key" />
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <div class="input-group">
+      <span class="input-group-text"><i class="bi bi-camera-reels"></i></span>
+      <input type="text" class="form-control" id="tmdbId" placeholder="TMDB ID" />
+    </div>
+  </div>
+
+  <div id="episodeFields" class="gap-3 mb-3">
+    <div style="width: 50%;">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+        <input type="number" class="form-control" id="seasonNumber" placeholder="Season No." />
+      </div>
+    </div>
+    <div style="width: 50%;">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-easel2"></i></span>
+        <input type="number" class="form-control" id="episodeCount" placeholder="Episode Count" />
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mb-3">
+  <button class="btn btn-primary flex-grow-1" id="generateBtn" onclick="generateCode()">Generate</button>
+  <button class="btn btn-outline-secondary" id="copyBtn">Copy Embed Code</button>
+</div>
+
+  <div class="mb-4">
+    <label class="form-label">Embed Code</label>
+    <textarea id="output" class="form-control" rows="6" ></textarea>
+  </div>
+
+  <div class="mb-4">
+    <label class="form-label">Additional Information</label>
+    <textarea id="extraOutput" class="form-control" rows="5" readonly></textarea>
+    <button class="btn btn-outline-secondary mt-2" id="copyExtraBtn">Copy Labels</button>
+  </div>
+</div>
+
+<div id="loadingIndicator" style="display:none; color: #333; font-weight: bold;">
+  Generating, please wait...
+</div>
+
+    </div>
+
+    <!-- Ranking Tab -->
+    <div class="tab-pane fade" id="ranking" role="tabpanel" aria-labelledby="ranking-tab">
+      <!-- Leave blank for now -->
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const toggleTypeInputs = () => {
+    const mediaType = document.querySelector('input[name="contentType"]:checked').value;
+    const episodeFields = document.getElementById('episodeFields');
+    episodeFields.style.display = mediaType === 'tv' ? 'flex' : 'none';
+  };
+  document.querySelectorAll('input[name="contentType"]').forEach(el =>
+    el.addEventListener('change', toggleTypeInputs)
+  );
+  toggleTypeInputs();
+
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('tmdbKey').value = localStorage.getItem('tmdbApiKey') || '';
+    document.getElementById('tinyApiKey').value = localStorage.getItem('tinyApiKey') || '';
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    const output = document.getElementById('output');
+    output.select();
+    document.execCommand('copy');
+  });
+
+  document.getElementById('copyExtraBtn').addEventListener('click', () => {
+    const extraOutput = document.getElementById('extraOutput');
+    const text = extraOutput.value;
+    const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+    const labels = [];
+
+    lines.forEach(line => {
+      const [key, ...rest] = line.split(':');
+      let value = rest.join(':').trim();
+      if (value.toUpperCase() === 'N/A') return;
+
+      if (key.toLowerCase() === 'genre') {
+        labels.push(...value.split(',').map(g => g.trim().replace(/\s+/g, '')));
+      } else if (key.toLowerCase() === 'type') {
+        labels.push(value);
+      } else if (key.toLowerCase() === 'rated') {
+        labels.push('z' + value);
+      } else if (key.toLowerCase() === 'year') {
+        labels.push('zYear:' + value);
+      } else if (key.toLowerCase() === 'duration') {
+        labels.push('zDuration:' + value);
+      } else if (key.toLowerCase() === 'status') {
+        labels.push('z' + value);
+      } else if (key.toLowerCase() === 'country') {
+        labels.push('zCountry:' + value);
+      }
+    });
+
+    const labelString = labels.join(',');
+
+    function fallbackCopyTextToClipboard(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        const successful = document.execCommand('copy');
+        alert(successful ? 'Blogger labels copied!' : 'Failed to copy labels.');
+      } catch {
+        alert('Failed to copy labels.');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(labelString).then(() => {
+        alert('Blogger labels copied!');
+      }).catch(() => {
+        fallbackCopyTextToClipboard(labelString);
+      });
+    } else {
+      fallbackCopyTextToClipboard(labelString);
+    }
+  });
+
+  document.getElementById('generateBtn').addEventListener('click', generateCode);
+
+  async function shortenUrl(url, apiKey) {
+    try {
+      const res = await fetch('https://api.tinyurl.com/create', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      return data.data?.tiny_url || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function generateCode() {
+    const generateBtn = document.getElementById('generateBtn');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    loadingIndicator.style.display = 'block';
+    generateBtn.disabled = true;
+
+    try {
+      const tmdbId = document.getElementById('tmdbId').value.trim();
+      const mediaType = document.querySelector('input[name="contentType"]:checked').value;
+      const tmdbApi = document.getElementById('tmdbKey').value.trim();
+      const tinyApi = document.getElementById('tinyApiKey').value.trim();
+
+      localStorage.setItem('tmdbApiKey', tmdbApi);
+      localStorage.setItem('tinyApiKey', tinyApi);
+
+      if (!tmdbApi) return alert('Please enter your TMDB API key.');
+
+      let poster = '', backdrop = '', desc = '', celebrities = [], genreList = [], rating = '', rated = '', year = '', duration = '', status = '', country = '';
+
+      const res = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}?api_key=${tmdbApi}&append_to_response=credits`);
+      const data = await res.json();
+      if (data.success === false) return alert('Invalid TMDB ID.');
+
+      poster = data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : '';
+      backdrop = data.backdrop_path ? `https://image.tmdb.org/t/p/w780${data.backdrop_path}` : '';
+      desc = data.overview || '';
+      celebrities = (data.credits?.cast || []).slice(0, 5).map(c => ({
+        name: c.name,
+        photo: c.profile_path ? `https://image.tmdb.org/t/p/w138_and_h175_face${c.profile_path}` : '',
+        title: c.character
+      }));
+      genreList = (data.genres || []).map(g => g.name);
+      rating = data.vote_average ? `${data.vote_average.toFixed(1)}/10` : 'N/A';
+
+      rated = 'N/A';
+      if (mediaType === 'movie') {
+        const certRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/release_dates?api_key=${tmdbApi}`);
+        const certData = await certRes.json();
+        const usCert = certData.results?.find(r => r.iso_3166_1 === 'US');
+        if (usCert?.release_dates?.length) {
+          rated = usCert.release_dates[0].certification || 'N/A';
+        }
+      } else {
+        const certRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/content_ratings?api_key=${tmdbApi}`);
+        const certData = await certRes.json();
+        const usCert = certData.results?.find(r => r.iso_3166_1 === 'US');
+        rated = usCert?.rating || 'N/A';
+      }
+
+      year = mediaType === 'movie' ? (data.release_date?.split('-')[0] || 'N/A') : (data.first_air_date?.split('-')[0] || 'N/A');
+      duration = mediaType === 'movie'
+        ? data.runtime ? `${Math.floor(data.runtime / 60)}h ${data.runtime % 60}min` : 'N/A'
+        : data.episode_run_time?.length ? `${Math.floor(data.episode_run_time[0] / 60)}h ${data.episode_run_time[0] % 60}min` : 'N/A';
+      status = data.status || 'N/A';
+      country = (data.production_countries?.map(c => c.name).join(', ') || 'N/A');
+
+      let episodes = [];
+      if (mediaType === 'tv') {
+        const count = parseInt(document.getElementById('episodeCount').value);
+        const season = parseInt(document.getElementById('seasonNumber').value);
+        for (let i = 1; i <= count; i++) {
+          const url = `https://player.vidsrc.co/embed/tv/${tmdbId}/${season}/${i}?autoplay=true`;
+          const shortUrl = await shortenUrl(url, tinyApi);
+          episodes.push({ episode: String(i).padStart(2, '0'), thumb: '', video: shortUrl || url });
+        }
+      } else {
+        const url = `https://player.vidsrc.co/embed/movie/${tmdbId}?autoplay=true`;
+        const shortUrl = await shortenUrl(url, tinyApi);
+        episodes.push({ episode: '01', thumb: '', video: shortUrl || url });
+      }
+
+      const embed = `<div>
+  <span id="post-id" data-post-id="${tmdbId}"></span>
+  <img alt="poster" src="${poster}" />
+  <iframe class="lazyloaded" data-src="/" src="/" allowfullscreen="true"></iframe>
+  <p>${desc}</p>
+  <script>
+    const defaultThumbnail = '${backdrop}';
+    const episodes = ${JSON.stringify(episodes, null, 2)};
+    const downloads = [];
+    const celebrities = ${JSON.stringify(celebrities, null, 2)};
+  <\/script>
+</div>`;
+      document.getElementById('output').value = embed;
+
+      const extraInfoText = `Genre: ${genreList.join(', ') || 'N/A'}
+Rating: ${rating}
+Type: ${mediaType === 'movie' ? 'Movie' : 'TV Series'}
+Rated: ${rated}
+Year: ${year}
+Duration: ${duration}
+Status: ${status}
+Country: ${country}`;
+
+      document.getElementById('extraOutput').value = extraInfoText;
+
+    } catch (err) {
+      alert('An error occurred during generation.');
+    } finally {
+      loadingIndicator.style.display = 'none';
+      generateBtn.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>
